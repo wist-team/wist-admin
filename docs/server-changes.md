@@ -30,10 +30,10 @@ In the box copy, after `app.use(cors(corsOptions))` and **before** the `bodyPars
 
 ```js
 const authGuard = require("./authGuard")
-app.use(authGuard({ service: "admin", protect: ["/users", "/user", "/meals", "/stats", "/leaderboard", "/leaderboardraw"] }))
+app.use(authGuard({ service: "admin", protect: [/^\//] }))
 ```
 
-`protect` paths are as Express sees them: the reverse proxy strips `/admin`, so `/admin/user/12/threads` arrives as `/user/12/threads`. Check `authGuard.js` for whether `protect` matches by prefix or exact path before relying on `/user` covering `/user/:id/threads`; if it is exact-match, protect `"*"` or use a regex per its documentation.
+`protect` entries are matched against the path as Express sees it (the reverse proxy strips `/admin`), and `authGuard.js:94-97` matches a string **exactly** or tests a RegExp. The admin service has no public routes, so one regex covering every path is correct; a string list would silently miss `/user/:id/threads`.
 
 `WIST_AUTH_MODE` is read from the same `.env` as the sandbox service, so `adminapi` starts in **audit** mode automatically. Commit this change to `wist-team/Node` too.
 
