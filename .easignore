@@ -1,3 +1,16 @@
+# When .easignore exists EAS uses it INSTEAD of .gitignore, so repeat the essentials.
+node_modules/
+.git/
+.expo/
+dist/
+ios/
+android/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+.DS_Store
+# project-specific
 recovered/
 docs/
 REBUILD_HANDOVER.md
