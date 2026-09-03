@@ -4,13 +4,11 @@
 
 export const env = {
   adminKey: process.env.EXPO_PUBLIC_WIST_ADMIN_KEY ?? '',
+  /** Only needed by the Sensitivities segment (Release 2); optional until then. */
   portalKey: process.env.EXPO_PUBLIC_WIST_PORTAL_KEY ?? '',
 } as const;
 
-/** Names of keys that are missing or empty. Empty array means the build is configured. */
+/** Keys the app cannot run without. Empty array means the build is configured. */
 export function missingKeys(): string[] {
-  const missing: string[] = [];
-  if (!env.adminKey) missing.push('EXPO_PUBLIC_WIST_ADMIN_KEY');
-  if (!env.portalKey) missing.push('EXPO_PUBLIC_WIST_PORTAL_KEY');
-  return missing;
+  return env.adminKey ? [] : ['EXPO_PUBLIC_WIST_ADMIN_KEY'];
 }
