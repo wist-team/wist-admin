@@ -35,7 +35,7 @@ TestFlight build 26 stops launching around **27 September 2026**. Release 1 exis
 1. **Credentials.** Run `eas credentials -p ios` (interactive) and confirm the distribution certificate, provisioning profile and App Store Connect API key exist in the `jonmhall` account. Confirm the Apple Developer membership renewal date. If either is missing, nothing else can ship.
 2. **Scaffold.** SDK 56, TypeScript, React Navigation, three EAS profiles, fingerprint runtime, `production` and `preview` channels, EAS environment variables. First commit pushed to `wist-team/wist-admin`.
 3. **HTTP client.** One module: base hosts, typed responses, key attachment on every request, startup check for missing keys. Generate the admin key (`openssl rand -hex 32`), hand over the `.env` line for the box.
-4. **Users.** List (sortable as build 26) and User detail with the Raw segment and delete, ported from `backups/SyftAdmin/screens/users.js` and corrected against `recovered/build26/decompiled.js` (S3 image host, `platform_color`, `sender_type`).
+4. **Users.** List (sortable as build 26) and User detail with the Raw segment and delete, ported from `backups/SyftAdmin/screens/users.js` and corrected against `recovered/build26/decompiled.js` (S3 image host, six sort buttons, nested nutrition table with assumptions).
 5. **Preview build** on Harry's phone (and an Android APK) in week one. This is the first real test of signing and EAS variables.
 6. **Compare** against build 26 on the Mac, field by field.
 7. **Production build**, submit to TestFlight.
@@ -48,6 +48,39 @@ TestFlight build 26 stops launching around **27 September 2026**. Release 1 exis
 11. **`/sync` client** with types, plus the Chat, History (Nutrition + Symptoms), Insights (Nutrients) and Profile segments. Replicate the ghost-meal downgrade and the `symptomData` lift from `syft_thread_content`.
 12. **Sensitivities** summary segment with the portal key. Exposures route added to `wist-api` and deployed to dev and prod; then the food detail sheet.
 13. **Tabs**, if a monitoring / error-logging section is wanted.
+
+## Status — end of 3 September 2026
+
+Read this before touching anything. Sequence steps above are annotated here rather than rewritten.
+
+### Done
+
+- Steps 1–4 and the first pass of 7. Code is on `wist-team/wist-admin` `main`. `npm run typecheck` and `npm test` (18 tests) pass.
+- **Build 27** (iOS, `production` profile, TestFlight-signed) exists on EAS: `https://expo.dev/accounts/jonmhall/projects/SyftAdmin/builds/9fe14d04-edfb-4dfc-8724-63e154e9c72d`. **Not submitted.** It predates the Raw-view fixes below, so it should be superseded by build 28 rather than shipped.
+- A `simulator` EAS profile exists (no signing needed). The latest simulator build, with the fixes, is installed on the iPhone 15 Pro simulator on Harry's Mac.
+- Admin key: generated, in the gitignored local `.env`, and on EAS (`EXPO_PUBLIC_WIST_ADMIN_KEY`, environments `preview` and `production`, visibility sensitive). Not yet added to the box's `WIST_API_KEYS` (see `docs/server-changes.md` §1).
+- `docs/server-changes.md` holds the prepared server work (guard mount on `adminapi.js`, exposures route on `wist-api`). Nothing server-side has been applied yet.
+
+### Open — needs Harry
+
+1. **Detail view bugs.** Harry tested the Raw view on the simulator and reported three problems: the segmented control filled half the screen, `syft-data` rows printed `[object Object]`, and the list did not scroll. All three were fixed (commit `149c62f`) and rebuilt, but Harry said it was "still not quite right" and paused before saying what. **Ask what he saw before doing anything else on the Raw view.**
+2. **SDK 57 decision.** expo-doctor flags SDK 56's Hermes (250829098.0.10) as affected by a known memory regression, fixed in SDK 57 / RN 0.86.2. Decision 3 chose SDK 56 before this was known. Upgrading now is `npx expo install expo@^57 --fix` on a tiny codebase; later it gets harder. Recommendation: upgrade before build 28.
+3. **TestFlight go/no-go.** Once the Raw view is right: cut build 28 (`eas build --profile production --platform ios`), then `eas submit --profile production --platform ios`. Submission puts a build in front of the whole tester list, so it is Harry's call.
+4. **Ad hoc renewal.** `eas build --profile preview --platform ios` in a real terminal, signing in with Harry's Syft Health Ltd Apple ID (needs Admin on the team) so EAS can create a new ad hoc certificate and register his phone (`eas device:create`).
+5. **Portal key** for Release 2's Sensitivities view: locate in the team password manager or rotate by redeploying `wist-api` and `clinic-portal-api` with a new `PortalApiKey` / `WistPortalKey`, then add as `EXPO_PUBLIC_WIST_PORTAL_KEY` on EAS.
+6. **Box work** in `docs/server-changes.md` §1, and later §2.
+
+### Gotchas learned (do not rediscover these)
+
+- **Local Xcode is too old.** SDK 56 requires Xcode ≥ 26.4; this Mac has 26.0.1, so `npx expo run:ios` fails with Swift errors inside `expo-modules-jsi`. Use the `simulator` EAS profile until Xcode is updated. A stale `ios/` folder from that attempt exists locally; it is gitignored and easignored.
+- **`.easignore` replaces `.gitignore` entirely.** The first version omitted `ios/` and `node_modules/`, uploading 394 MB and a Hermes compiler path from Harry's Mac, which failed the EAS build. The current `.easignore` is correct; keep it in sync with `.gitignore`.
+- **`eas build:view --json` can emit control characters** in error messages; parse with `json.loads(..., strict=False)`.
+- **EAS Xcode logs download brotli-encoded**; `curl --compressed` does not decode `br` on this machine, use `brotli -d`.
+- **The admin users endpoint returns exactly 100 rows** (a LIMIT in the drifted box copy of `adminapi.js`, not in git). Decimal columns arrive as strings; build 26 sorted them lexicographically, this port sorts numerically.
+- **`platform_color` in the handover is React Native internals**, not an API field. Ignore it.
+- **`syft-data.message` is an object** (the echoed user message), not text. The meal is in `nutritionDataNested` (fallback `nutritionData`), with per-ingredient `assumptions` strings.
+- **A React Native `ScrollView` defaults to `flexGrow: 1`.** A horizontal scroller in a column layout must set `flexGrow: 0` or it takes half the screen.
+- **The classifier that gates shell commands in auto mode can go down**; file edits still work, so prepare files and hand the commands to Harry.
 
 ## Reference facts
 
