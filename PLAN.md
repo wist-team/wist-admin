@@ -52,6 +52,8 @@ TestFlight build 26 stops launching around **27 September 2026**. Release 1 exis
 ## Reference facts
 
 - EAS: logged in as `harryn`, Admin on the `jonmhall` account. Project `346028dc-64f8-4f99-8c45-8b64faf30466`.
+- Apple: build 26 is signed by team `KDA4G895QS` (Syft Health Ltd, provider 127635333), not Jon's personal team `4N2ZXVJDVE`. Verified 3 Sep 2026 via `eas credentials`: App Store distribution certificate and profile valid to **15 Apr 2027**; an App Store Connect API key is stored; the **ad hoc certificate and profile expired 14 Apr 2026** and must be regenerated (needs an Apple ID with Admin on the team) before the `preview` profile can build. Harry has an Apple ID on the team.
+- The admin key is on EAS (`EXPO_PUBLIC_WIST_ADMIN_KEY`, preview + production, sensitive). The portal key is not yet located: it is a NoEcho CloudFormation parameter on `wist-api` and `clinic-portal-api` with no copy in `samconfig.toml`.
 - Build 26 was built from git commit `a2f0cd9a` ("Upgrade Expo SDK 55 -> 56", Claude-co-authored). Jon's machine has the source and the Claude sessions.
 - User app (`~/Developer/wist`): SDK 54, React Navigation v7, plain StyleSheet, Cognito via Amplify, SQLite as the on-device source of truth fed by `/sync`.
 - `/sync` server implementation: `~/Developer/Node/wistLambda.js:812`. Message shaping at `:487-616`.
