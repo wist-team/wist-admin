@@ -15,8 +15,14 @@ import {
 
 import { deleteMessage, fetchUserThreads, type AdminUser, type ThreadRow } from '../api/admin';
 import { formatTimestamp } from '../lib/format';
+import { summariseNutrition } from '../lib/nutrition';
 import { legacyMealImageUrl, mealImageUrl, parseThreadContent, type ParsedContent } from '../lib/threadContent';
 import { adminTheme, spacing } from '../theme';
+import { NutritionDataTable } from './NutritionDataTable';
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
 
 /**
  * Port of build 26's UserDetailsModal: raw syft_thread rows, newest last,
@@ -101,6 +107,7 @@ export function RawThreadsView({ user }: { user: AdminUser }) {
       </View>
       <FlatList
         ref={listRef}
+        style={styles.list}
         data={ordered}
         keyExtractor={(r) => String(r.syft_thread_id)}
         renderItem={({ item }) => (
@@ -182,20 +189,30 @@ function ContentSummary({
   // Build 26 showed the photo only on the user's own message (the same file
   // name is echoed into the bot and data rows).
   const image = senderType === 'user' ? mealImageUrl(c.userImage) : null;
+  // syft-data rows carry the meal breakdown; build 26 rendered it as a table plus assumptions.
+  const nutrition =
+    senderType === 'syft-data' ? summariseNutrition(c.nutritionDataNested, c.nutritionData, c.assumptions) : null;
+  // Symptom-only logs have no nutrition; their visible text is symptomData.response.
+  const symptomData = isRecord(c.symptomData) ? c.symptomData : null;
+  const symptomResponse = typeof symptomData?.response === 'string' ? symptomData.response : null;
+  const symptomKeys = isRecord(symptomData?.symptoms)
+    ? Object.entries(symptomData.symptoms)
+        .filter(([, v]) => v !== null && v !== undefined && v !== false)
+        .map(([k]) => k)
+    : [];
   return (
     <View>
       {image ? <RowImage url={image} fallbackUrl={legacyMealImageUrl(c.userImage)} onOpen={onOpenImage} /> : null}
       {c.userResponse ? <Text style={styles.body}>{c.userResponse}</Text> : null}
       {c.syftResponse ? <Text style={styles.body}>{c.syftResponse}</Text> : null}
       {c.mealName ? <Text style={styles.bodyStrong}>{String(c.mealName)}</Text> : null}
-      {c.message && senderType === 'syft-data' ? <Text style={styles.body}>{String(c.message)}</Text> : null}
+      {nutrition ? <NutritionDataTable summary={nutrition} /> : null}
+      {symptomResponse ? <Text style={styles.body}>{symptomResponse}</Text> : null}
       {c.syftVisionDescription && senderType === 'user' ? (
         <Text style={styles.bodyMuted}>Vision: {c.syftVisionDescription}</Text>
       ) : null}
       {c.proactive ? <Text style={styles.tag}>proactive{c.proactiveRuleId ? ` · ${c.proactiveRuleId}` : ''}</Text> : null}
-      {c.symptomData && typeof c.symptomData === 'object' && Object.keys(c.symptomData as object).length > 0 ? (
-        <Text style={styles.tag}>symptomData</Text>
-      ) : null}
+      {symptomKeys.length > 0 ? <Text style={styles.tag}>symptoms: {symptomKeys.join(', ')}</Text> : null}
       {c.userData ? <Text style={styles.bodyMuted}>{JSON.stringify(c.userData)}</Text> : null}
     </View>
   );
@@ -247,6 +264,7 @@ function ImageViewer({ url, onClose }: { url: string | null; onClose: () => void
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  list: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   errorText: { color: adminTheme.danger, textAlign: 'center', marginBottom: spacing.md },
   toolbar: {

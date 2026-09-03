@@ -14,7 +14,12 @@ interface Props<T extends string> {
 
 export function SegmentedControl<T extends string>({ segments, value, onChange }: Props<T>) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.scroller}
+      contentContainerStyle={styles.row}
+    >
       {segments.map((s) => {
         const active = s.key === value;
         return (
@@ -34,7 +39,9 @@ export function SegmentedControl<T extends string>({ segments, value, onChange }
 }
 
 const styles = StyleSheet.create({
-  row: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.sm },
+  // ScrollView defaults to flexGrow: 1; without this it takes half the screen in a column layout.
+  scroller: { flexGrow: 0, flexShrink: 0 },
+  row: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.sm, alignItems: 'center' },
   segment: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
