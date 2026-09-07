@@ -18,7 +18,8 @@ export default function UserDetailScreen({ route }: RootScreenProps<'UserDetail'
 
   return (
     <View style={styles.container}>
-      <SegmentedControl segments={SEGMENTS} value={segment} onChange={setSegment} />
+      {/* A single segment needs no control; it appears once Release 2 adds more. */}
+      {SEGMENTS.length > 1 ? <SegmentedControl segments={SEGMENTS} value={segment} onChange={setSegment} /> : null}
       {segment === 'raw' && <RawThreadsView user={user} />}
     </View>
   );
