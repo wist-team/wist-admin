@@ -25,6 +25,19 @@ dry = "--dry-run" in sys.argv
 text = src.read_text()
 orig = text
 
+# The box copy keeps the pre-2026 /users query as a block of // comments right
+# after the live one. It is dead code that git already preserves, and it
+# duplicates every SQL string this script counts, so drop it first.
+lines = text.split("\n")
+start = next((i for i, l in enumerate(lines) if l.strip().startswith("// const rows = await conn.query(")), None)
+if start is not None:
+    end = start
+    while end < len(lines) and lines[end].strip().startswith("//"):
+        end += 1
+    print(f"removed {end - start} lines of commented-out query (lines {start + 1}-{end})")
+    del lines[start:end]
+    text = "\n".join(lines)
+
 DATEDIFF = "DATEDIFF(CURDATE(), MIN(st.syft_thread_timestamp))"
 DATEDIFF1 = "(DATEDIFF(CURDATE(), MIN(st.syft_thread_timestamp)) + 1)"
 MEAL_LIKE = "st.syft_thread_sender_type = 'syft-data' AND st.syft_thread_content LIKE '%nutritionData%'"
@@ -55,6 +68,12 @@ EDITS = [
         f"FLOOR({DATEDIFF1} / 7)",
         2,
     ),
+    (
+        "2c. keep days_since_first_message exclusive (it feeds 'Signed up N days ago')",
+        f"{DATEDIFF1} AS days_since_first_message",
+        f"{DATEDIFF} AS days_since_first_message",
+        1,
+    ),
     ("3. meal counts exclude symptom logs (users, meals, stats)", MEAL_LIKE, MEAL_REAL, 3),
     (
         "4a. liked = rating 1 (users)",
@@ -82,27 +101,22 @@ EDITS = [
     ),
     (
         "5a. avg_messages_per_day counts user rows only",
-        "COUNT(st.syft_thread_id) / ",
-        "COUNT(CASE WHEN st.syft_thread_sender_type = 'user' THEN 1 END) / ",
+        "COUNT(st.syft_thread_id) /",
+        "COUNT(CASE WHEN st.syft_thread_sender_type = 'user' THEN 1 END) /",
         1,
     ),
     ("5b. weekday logs count user rows only", WEEKDAY, WEEKDAY.replace("CASE WHEN ", "CASE WHEN " + USER_ONLY), 2),
     ("5c. weekend logs count user rows only", WEEKEND, WEEKEND.replace("CASE WHEN ", "CASE WHEN " + USER_ONLY), 2),
 ]
 
-problems = []
 for desc, old, new, expected in EDITS:
     n = text.count(old)
     if n != expected:
-        problems.append(f"  {desc}: expected {expected} match(es), found {n}")
-        continue
+        print(f"\nABORTED at '{desc}': expected {expected} match(es), found {n}. Nothing written.")
+        print("Inspect the box copy by hand around that spot and adjust EDITS before retrying.")
+        sys.exit(1)
     text = text.replace(old, new)
     print(f"ok  {desc} ({n})")
-
-if problems:
-    print("\nABORTED — file differs from what this script expects:\n" + "\n".join(problems))
-    print("Inspect the box copy by hand around those spots and adjust EDITS before retrying.")
-    sys.exit(1)
 
 if dry:
     print(f"\ndry run: {len(orig)} → {len(text)} bytes, nothing written")
