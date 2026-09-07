@@ -59,12 +59,10 @@ Three long-standing defects in `GET /users` (and one in `GET /stats`). Apply to 
 **b. Meals overcount symptom logs.** Symptom-only rows carry `"nutritionData": {}` and match `LIKE '%nutritionData%'`. In all three places (`/users` as `user_meal_count`, `/stats` as `total_meals`, `/meals`' WHERE clause) the condition becomes:
 
 ```sql
-st.syft_thread_sender_type = 'syft-data' AND st.syft_thread_content LIKE '%nutritionData%'
-  AND st.syft_thread_content NOT LIKE '%"nutritionData": {}%'
-  AND st.syft_thread_content NOT LIKE '%"nutritionData":{}%'
+st.syft_thread_sender_type = 'syft-data' AND st.syft_thread_content LIKE '%Kcals%'
 ```
 
-Two `NOT LIKE`s because the JSON has been serialised with and without a space over the years. This was chosen over `JSON_EXTRACT`, which is correct but parses every row's content on a query that already scans the whole `syft_thread` table.
+Only rows with real nutrition objects contain the `Kcals` key. **Do not use `NOT LIKE` or `JSON_EXTRACT` here**: measured on 7 Sep 2026 over 138k rows, the old `LIKE` took 1.2 s, this one 1.3 s, and a `NOT LIKE '%"nutritionData": {}%'` version 27 s, because proving absence means scanning every row's entire JSON. The first upload that day shipped the `NOT LIKE` version and took the users endpoint from ~5 s to ~17 s; the second upload corrected it.
 
 **c. Liked and disliked are swapped.** The user app stores thumbs-up as `syft_thread_rating = 1` and thumbs-down as `-1` (`screens/Chat/ChatMessage.js:2018-2021`). In `/users` and `/stats`:
 
