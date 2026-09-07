@@ -56,7 +56,7 @@ Read this before touching anything. Sequence steps above are annotated here rath
 ### Done
 
 - Steps 1–4 and the first pass of 7. Code is on `wist-team/wist-admin` `main`. `npm run typecheck` and `npm test` (18 tests) pass.
-- **Build 27** (iOS, `production` profile, TestFlight-signed) exists on EAS: `https://expo.dev/accounts/jonmhall/projects/SyftAdmin/builds/9fe14d04-edfb-4dfc-8724-63e154e9c72d`. **Not submitted.** It predates the Raw-view fixes below, so it should be superseded by build 28 rather than shipped.
+- **Build 28** (iOS, `production` profile, SDK 57, TestFlight-signed, includes all fixes to 7 Sep) is on EAS: `https://expo.dev/accounts/jonmhall/projects/SyftAdmin/builds/1b802748-2caa-49cb-9ebc-15b9e49ba2e1`. **Not yet submitted — waiting on Harry's go.** Build 27 (SDK 56, older code) is superseded; ignore it.
 - A `simulator` EAS profile exists (no signing needed). The latest simulator build, with the fixes, is installed on the iPhone 15 Pro simulator on Harry's Mac.
 - Admin key: generated, in the gitignored local `.env`, and on EAS (`EXPO_PUBLIC_WIST_ADMIN_KEY`, environments `preview` and `production`, visibility sensitive). Not yet added to the box's `WIST_API_KEYS` (see `docs/server-changes.md` §1).
 - **Step 8 applied on 7 Sep 2026:** `adminapi.js` on the box now mounts `authGuard` in audit mode (`keys=3`, the admin key registered as `admin-app`) and carries the stats SQL fixes (day span, meal count, liked/disliked swap, user-only averages). Box copy and patched copy are commits `ff816da` and `5b9db24` on `wist-team/Node`. Backup on the box: `/home/ec2-user/adminapi.js.bak-20260907`. `docs/server-changes.md` §2 (exposures route on `wist-api`) is still to do.
@@ -66,7 +66,7 @@ Read this before touching anything. Sequence steps above are annotated here rath
 
 1. **Detail view bugs.** Harry tested the Raw view on the simulator and reported three problems: the segmented control filled half the screen, `syft-data` rows printed `[object Object]`, and the list did not scroll. All three were fixed (commit `149c62f`) and rebuilt, but Harry said it was "still not quite right" and paused before saying what. **Ask what he saw before doing anything else on the Raw view.**
 2. ~~SDK 57 decision~~ **Done 7 Sep 2026**: on SDK 57 / RN 0.86.3. `npx expo install expo@^57 --fix` needed `jest-expo` bumped by hand first (peer conflict on the RN jest preset).
-3. **TestFlight go/no-go.** Once the Raw view is right: cut build 28 (`eas build --profile production --platform ios`), then `eas submit --profile production --platform ios`. Submission puts a build in front of the whole tester list, so it is Harry's call.
+3. **TestFlight go/no-go.** Build 28 is cut. Next: `eas submit --profile production --platform ios --non-interactive` (App Store Connect API key is on EAS). Submission puts a build in front of the whole tester list, so it is Harry's call.
 4. **Ad hoc renewal.** `eas build --profile preview --platform ios` in a real terminal, signing in with Harry's Syft Health Ltd Apple ID (needs Admin on the team) so EAS can create a new ad hoc certificate and register his phone (`eas device:create`).
 5. **Portal key** for Release 2's Sensitivities view: locate in the team password manager or rotate by redeploying `wist-api` and `clinic-portal-api` with a new `PortalApiKey` / `WistPortalKey`, then add as `EXPO_PUBLIC_WIST_PORTAL_KEY` on EAS.
 6. **Box work** in `docs/server-changes.md` §1, and later §2.
