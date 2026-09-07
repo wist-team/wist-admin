@@ -12,7 +12,7 @@ export function NutritionDataTable({ summary }: { summary: NutritionSummary }) {
         <Text style={[styles.cell, styles.itemCell, styles.headerText]}>Item</Text>
         <Text style={[styles.cell, styles.numCell, styles.headerText]}>Wgt</Text>
         {MACROS.map((m) => (
-          <Text key={m} style={[styles.cell, styles.numCell, styles.headerText]}>
+          <Text key={m} style={[styles.cell, styles.numCell, styles.headerText]} numberOfLines={1} adjustsFontSizeToFit>
             {m}
           </Text>
         ))}
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   cell: { paddingVertical: 3, fontSize: 11, color: adminTheme.text, textAlign: 'center' },
   itemCell: { flex: 3, textAlign: 'left' },
   numCell: { flex: 1 },
-  headerText: { fontWeight: '700' },
+  headerText: { fontWeight: '700', fontSize: 10 },
   headingText: { flex: 1, textAlign: 'left', fontWeight: '700', color: adminTheme.accent, paddingTop: 6 },
   assumptions: { marginTop: spacing.sm },
   assumptionsHeading: { color: adminTheme.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 2 },
