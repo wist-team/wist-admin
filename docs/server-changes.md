@@ -61,6 +61,21 @@ COUNT(CASE WHEN st.syft_thread_sender_type = 'syft-bot' AND st.syft_thread_ratin
 
 The admin app does **not** swap these on the client, deliberately, so there is no double-swap once the server is right. Until then, read "Liked" as disliked in the app.
 
+**d. Per-day averages should count user messages only.** `avg_messages_per_day`, `avg_weekday_logs` and `avg_weekend_logs` count every row (user, bot reply, meal card), so they run about three times the user's own rate. Restrict each numerator to `st.syft_thread_sender_type = 'user'`:
+
+```sql
+-- avg_messages_per_day: replace COUNT(st.syft_thread_id) with
+COUNT(CASE WHEN st.syft_thread_sender_type = 'user' THEN 1 END)
+
+-- weekday_logs / avg_weekday_logs numerator:
+COUNT(CASE WHEN st.syft_thread_sender_type = 'user' AND DAYOFWEEK(st.syft_thread_timestamp) BETWEEN 2 AND 6 THEN 1 END)
+
+-- weekend_logs / avg_weekend_logs numerator:
+COUNT(CASE WHEN st.syft_thread_sender_type = 'user' AND DAYOFWEEK(st.syft_thread_timestamp) IN (1, 7) THEN 1 END)
+```
+
+The admin app already derives the daily figure on the client as `user_message_count / inclusive span` and labels it "Avg user msg per day". The weekday and weekend figures are labelled the same way but come straight from the server, so they read high until this lands. `total_messages_per_day` can stay as the all-rows figure; nothing displays it.
+
 ### Step 4 — upload with the atomic swap
 
 Follow §3 of the auth handover exactly (upload as `adminapi.js.new`, `sha256sum`, back up outside the watched dir, `mv`). PM2 watch restarts `adminapi` on the rename. Then confirm:

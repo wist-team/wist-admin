@@ -19,9 +19,15 @@ function utcDay(iso: string): number | null {
 export function deriveDayStats(user: AdminUser, now: Date = new Date()) {
   const first = user.first_activity ? utcDay(user.first_activity) : null;
   const today = Math.floor(now.getTime() / DAY_MS);
-  if (first === null) return { span: null, daysMissed: null, missedPct: null };
+  if (first === null) return { span: null, daysMissed: null, missedPct: null, avgUserMsgPerDay: null };
   const span = Math.max(today - first + 1, 1);
   const active = Math.min(toNumber(user.days_active) ?? 0, span);
   const daysMissed = span - active;
-  return { span, daysMissed, missedPct: (daysMissed / span) * 100 };
+  return {
+    span,
+    daysMissed,
+    missedPct: (daysMissed / span) * 100,
+    /** User-sent messages only; the server's avg_messages_per_day counts bot and data rows too. */
+    avgUserMsgPerDay: (toNumber(user.user_message_count) ?? 0) / span,
+  };
 }

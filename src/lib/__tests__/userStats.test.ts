@@ -36,10 +36,11 @@ describe('deriveDayStats', () => {
 
   it('computes missed days and percentage', () => {
     const first = new Date(now.getTime() - 99 * 86_400_000).toISOString();
-    const s = deriveDayStats({ ...base, first_activity: first, days_active: 75 }, now);
+    const s = deriveDayStats({ ...base, first_activity: first, days_active: 75, user_message_count: 250 }, now);
     expect(s.span).toBe(100);
     expect(s.daysMissed).toBe(25);
     expect(s.missedPct).toBe(25);
+    expect(s.avgUserMsgPerDay).toBe(2.5);
   });
 
   it('handles a user with no activity', () => {
@@ -47,6 +48,7 @@ describe('deriveDayStats', () => {
       span: null,
       daysMissed: null,
       missedPct: null,
+      avgUserMsgPerDay: null,
     });
   });
 });

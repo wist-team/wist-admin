@@ -102,12 +102,12 @@ function UserRow({ user, onPress }: { user: AdminUser; onPress: () => void }) {
       />
       <Pair left={`Days active: ${roundOrDash(user.days_active)}`} right={`Days missed: ${roundOrDash(days.daysMissed)}`} />
       <Pair
-        left={`Avg msg per day: ${roundOrDash(user.avg_messages_per_day)}`}
+        left={`Avg user msg per day: ${roundOrDash(days.avgUserMsgPerDay)}`}
         right={`${roundOrDash(days.missedPct)}% of days missed`}
       />
       <Pair
-        left={`Avg weekday: ${roundOrDash(user.avg_weekday_logs)}`}
-        right={`Avg weekend: ${roundOrDash(user.avg_weekend_logs)}`}
+        left={`Avg user msg weekday: ${roundOrDash(user.avg_weekday_logs)}`}
+        right={`Avg user msg weekend: ${roundOrDash(user.avg_weekend_logs)}`}
       />
       <Pair left={`Last active: ${formatRelative(user.most_recent_activity)}`} right="" />
       <Text style={styles.sub}>User Sub: {user.userSub || 'TestFlight user'}</Text>
