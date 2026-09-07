@@ -18,15 +18,26 @@ Store the key in the team password manager under "Wist Admin app key".
 
 ### Step 2 — pull the box copy into git
 
+There is no SSH route from Harry's Mac; use Webmin's File Manager to download `/home/ec2-user/syft_api/adminapi.js` to `~/Downloads/adminapi.js`, then:
+
 ```bash
-# on your Mac
-scp ec2-user@108.129.8.46:/home/ec2-user/syft_api/adminapi.js ~/Developer/Node/adminapi.js
+cp ~/Downloads/adminapi.js ~/Developer/Node/adminapi.js
 cd ~/Developer/Node && git diff --stat && git commit -am "adminapi.js: import box copy (drifted since <date>)"
 ```
 
-### Step 3 — mount the guard
+### Step 3 — apply the patch script
 
-In the box copy, after `app.use(cors(corsOptions))` and **before** the `bodyParser` lines, add:
+`scripts/patch-adminapi.py` in this repo applies **everything in steps 3 and 3b** to a copy and aborts if any expected line is not found exactly the expected number of times (the box copy has drifted, so this is the safety net):
+
+```bash
+cd ~/Developer/wist-admin
+python3 scripts/patch-adminapi.py ~/Developer/Node/adminapi.js          # writes adminapi.js.patched
+cp ~/Developer/Node/adminapi.js.patched /tmp/adminapi.check.js && node --check /tmp/adminapi.check.js
+```
+
+If it aborts, the box copy differs around the named edit; look at that spot and adjust the `EDITS` list. What the script does, for review:
+
+In the box copy, after `app.use(cors(corsOptions))` and **before** the `bodyParser` lines, it adds:
 
 ```js
 const authGuard = require("./authGuard")
@@ -43,13 +54,15 @@ Three long-standing defects in `GET /users` (and one in `GET /stats`). Apply to 
 
 **a. Day span excludes today.** Every `DATEDIFF(CURDATE(), MIN(st.syft_thread_timestamp))` in the `/users` query should be `(DATEDIFF(CURDATE(), MIN(st.syft_thread_timestamp)) + 1)`. There are seven occurrences: `days_since_first_message`, `days_missed`, `missed_days_percentage` (twice), `avg_messages_per_day`, `avg_syft_data_responses_per_day`, `total_messages_per_day`, plus the two weekday/weekend denominators which already add 1 inside `FLOOR(...)`. The admin app derives days missed and the missed percentage on the client from `first_activity`, so those two will agree either way; the per-day averages only come right with this change.
 
-**b. Meals overcount symptom logs.** Symptom-only rows carry `"nutritionData": {}` and match `LIKE '%nutritionData%'`. Replace both occurrences (in `/users` as `user_meal_count`, in `/stats` as `total_meals`, and in `/meals`' WHERE clause) with a check on the nested structure:
+**b. Meals overcount symptom logs.** Symptom-only rows carry `"nutritionData": {}` and match `LIKE '%nutritionData%'`. In all three places (`/users` as `user_meal_count`, `/stats` as `total_meals`, `/meals`' WHERE clause) the condition becomes:
 
 ```sql
-JSON_LENGTH(JSON_EXTRACT(st.syft_thread_content, '$.nutritionDataNested')) > 0
+st.syft_thread_sender_type = 'syft-data' AND st.syft_thread_content LIKE '%nutritionData%'
+  AND st.syft_thread_content NOT LIKE '%"nutritionData": {}%'
+  AND st.syft_thread_content NOT LIKE '%"nutritionData":{}%'
 ```
 
-If any rows predate `nutritionDataNested`, use `JSON_LENGTH(JSON_EXTRACT(st.syft_thread_content, '$.nutritionData')) > 0` instead; both are `{}` on symptom rows.
+Two `NOT LIKE`s because the JSON has been serialised with and without a space over the years. This was chosen over `JSON_EXTRACT`, which is correct but parses every row's content on a query that already scans the whole `syft_thread` table.
 
 **c. Liked and disliked are swapped.** The user app stores thumbs-up as `syft_thread_rating = 1` and thumbs-down as `-1` (`screens/Chat/ChatMessage.js:2018-2021`). In `/users` and `/stats`:
 
