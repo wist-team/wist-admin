@@ -4,7 +4,7 @@ Two server-side changes fall out of `PLAN.md`. Neither blocks Release 1: the gua
 
 ## 1. Admin API behind `authGuard` (box: `adminapi.js`)
 
-> **Applied 7 Sep 2026** (steps 1–4). Guard banner: `service=admin mode=audit keys=3 protect=[/^\//]`. Verified from outside: 200 with and without key; meal counts down, liked/disliked flipped, missed % non-negative. Step 5 (enforce) remains.
+> **Applied 7 Sep 2026** (steps 1–4, two uploads; the live file is `wist-team/Node` commit `800d0fe`, SHA-256 `d0a6e579…`). Guard banner: `service=admin mode=audit keys=3 protect=[/^\//]`. Verified from outside: 200 with and without key; meal counts down, liked/disliked flipped, missed % non-negative. Timings after the second upload: `/users` 3.8 s, `/stats` 13 s, `/meals` 15 s (the last two are unused by the app). Step 5 (enforce) remains. Backup on the box: `/home/ec2-user/adminapi.js.bak-20260907`.
 
 Background and box procedures: `~/Developer/Node/API_AUTH_HANDOVER.md` §2–§3. The box copy of `adminapi.js` has drifted from git (22.07 KiB vs 17.28 KiB), so **download the box copy and patch that**, never the repo copy.
 
