@@ -10,7 +10,7 @@ Background and box procedures: `~/Developer/Node/API_AUTH_HANDOVER.md` §2–§3
 
 The admin app's key is in the local `.env` of this repo and already on EAS (`EXPO_PUBLIC_WIST_ADMIN_KEY`, environments `preview` and `production`, visibility sensitive). Append it to `WIST_API_KEYS` in `/home/ec2-user/syft_api/.env`, comma-separated, named `admin-app`:
 
-```
+```text
 WIST_API_KEYS=lambda-dev:<k1>,lambda-prod:<k2>,admin-app:<admin key>
 ```
 
