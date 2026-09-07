@@ -59,7 +59,8 @@ Read this before touching anything. Sequence steps above are annotated here rath
 - **Build 27** (iOS, `production` profile, TestFlight-signed) exists on EAS: `https://expo.dev/accounts/jonmhall/projects/SyftAdmin/builds/9fe14d04-edfb-4dfc-8724-63e154e9c72d`. **Not submitted.** It predates the Raw-view fixes below, so it should be superseded by build 28 rather than shipped.
 - A `simulator` EAS profile exists (no signing needed). The latest simulator build, with the fixes, is installed on the iPhone 15 Pro simulator on Harry's Mac.
 - Admin key: generated, in the gitignored local `.env`, and on EAS (`EXPO_PUBLIC_WIST_ADMIN_KEY`, environments `preview` and `production`, visibility sensitive). Not yet added to the box's `WIST_API_KEYS` (see `docs/server-changes.md` §1).
-- `docs/server-changes.md` holds the prepared server work (guard mount on `adminapi.js`, exposures route on `wist-api`). Nothing server-side has been applied yet.
+- **Step 8 applied on 7 Sep 2026:** `adminapi.js` on the box now mounts `authGuard` in audit mode (`keys=3`, the admin key registered as `admin-app`) and carries the stats SQL fixes (day span, meal count, liked/disliked swap, user-only averages). Box copy and patched copy are commits `ff816da` and `5b9db24` on `wist-team/Node`. Backup on the box: `/home/ec2-user/adminapi.js.bak-20260907`. `docs/server-changes.md` §2 (exposures route on `wist-api`) is still to do.
+- Day-to-day loop is `npx expo start` in Expo Go (see README); EAS simulator builds are only for verifying release artefacts.
 
 ### Open — needs Harry
 

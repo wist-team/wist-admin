@@ -4,6 +4,8 @@ Two server-side changes fall out of `PLAN.md`. Neither blocks Release 1: the gua
 
 ## 1. Admin API behind `authGuard` (box: `adminapi.js`)
 
+> **Applied 7 Sep 2026** (steps 1–4). Guard banner: `service=admin mode=audit keys=3 protect=[/^\//]`. Verified from outside: 200 with and without key; meal counts down, liked/disliked flipped, missed % non-negative. Step 5 (enforce) remains.
+
 Background and box procedures: `~/Developer/Node/API_AUTH_HANDOVER.md` §2–§3. The box copy of `adminapi.js` has drifted from git (22.07 KiB vs 17.28 KiB), so **download the box copy and patch that**, never the repo copy.
 
 ### Step 1 — register the key (no restart needed yet)
