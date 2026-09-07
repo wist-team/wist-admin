@@ -72,7 +72,9 @@ Read this before touching anything. Sequence steps above are annotated here rath
 
 ### Gotchas learned (do not rediscover these)
 
-- **Local Xcode is too old.** SDK 56 requires Xcode ≥ 26.4; this Mac has 26.0.1, so `npx expo run:ios` fails with Swift errors inside `expo-modules-jsi`. Use the `simulator` EAS profile until Xcode is updated. A stale `ios/` folder from that attempt exists locally; it is gitignored and easignored.
+- **Day-to-day testing is Expo Go, not EAS builds.** `npx expo start` + `i` runs the app from Metro in Expo Go (verified on SDK 56, 7 Sep 2026). Release 1 has no custom native modules, so this covers everything; EAS simulator builds are for verifying the release artifact only. See README.
+- **Local Xcode is too old.** SDK 56 requires Xcode ≥ 26.4; this Mac has 26.0.1, so `npx expo run:ios` fails with Swift errors inside `expo-modules-jsi`. Not needed while Expo Go suffices. A stale `ios/` folder from that attempt exists locally; it is gitignored and easignored.
+- **First `expo start` may fail with `ENOENT` renaming `~/.expo/codesigning/<projectId>/…json`.** Metro stays up but never bundles and Expo Go sits on the splash. Kill and restart; it works the second time.
 - **`.easignore` replaces `.gitignore` entirely.** The first version omitted `ios/` and `node_modules/`, uploading 394 MB and a Hermes compiler path from Harry's Mac, which failed the EAS build. The current `.easignore` is correct; keep it in sync with `.gitignore`.
 - **`eas build:view --json` can emit control characters** in error messages; parse with `json.loads(..., strict=False)`.
 - **EAS Xcode logs download brotli-encoded**; `curl --compressed` does not decode `br` on this machine, use `brotli -d`.
