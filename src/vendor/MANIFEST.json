@@ -1,0 +1,13 @@
+{
+  "source": "wist-team/wist (the user app), local checkout ~/Developer/wist",
+  "note": "Files copied verbatim so the admin app renders exactly what the user sees. Run `npm run vendor:check` to detect drift; re-copy and update the hash + commit when the user app changes.",
+  "files": [
+    {
+      "path": "wist/utils/symptomDisplay.js",
+      "sourcePath": "utils/symptomDisplay.js",
+      "sourceCommit": "347b76fc509ce0120e03b24496e91bba807b621c",
+      "sha256": "4640b1d3f022c14714c77e819e012abc2a486507761dff24eeedfd8c220708c1",
+      "copied": "2026-09-07"
+    }
+  ]
+}

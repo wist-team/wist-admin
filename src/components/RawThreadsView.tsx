@@ -18,6 +18,12 @@ import { formatTimestamp } from '../lib/format';
 import { summariseNutrition } from '../lib/nutrition';
 import { legacyMealImageUrl, mealImageUrl, parseThreadContent, type ParsedContent } from '../lib/threadContent';
 import { adminTheme, spacing } from '../theme';
+import {
+  hasSymptomCard,
+  polarityColors,
+  symptomCardDetail,
+  symptomCardTitle,
+} from '../vendor/wist/utils/symptomDisplay';
 import { NutritionDataTable } from './NutritionDataTable';
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -25,9 +31,9 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 /**
- * Port of build 26's UserDetailsModal: raw syft_thread rows, newest last,
- * sender type, the useful content fields, timestamp, API version, the user's
- * photo, and long-press to delete. Adds a per-row JSON toggle for debugging.
+ * Port of build 26's UserDetailsModal: raw syft_thread rows, newest first,
+ * sender type, the useful content fields, timestamp, the user's photo, and a
+ * long-press menu with Show JSON and Delete.
  */
 export function RawThreadsView({ user }: { user: AdminUser }) {
   const [rows, setRows] = useState<ThreadRow[]>([]);
@@ -35,6 +41,7 @@ export function RawThreadsView({ user }: { user: AdminUser }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [jsonRow, setJsonRow] = useState<ThreadRow | null>(null);
   const listRef = useRef<FlatList<ThreadRow>>(null);
 
   const load = useCallback(
@@ -57,30 +64,35 @@ export function RawThreadsView({ user }: { user: AdminUser }) {
     void load(false);
   }, [load]);
 
-  // API returns newest first; build 26 rendered in that order with a
-  // "scroll to bottom" button. Oldest-first reads like a chat, so flip it.
-  const ordered = useMemo(() => [...rows].reverse(), [rows]);
-
-  const confirmDelete = (row: ThreadRow) => {
-    Alert.alert(
-      'Delete message',
-      `Permanently delete syft_thread ${row.syft_thread_id} (${row.syft_thread_sender_type})? This removes it from the user's app.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Message',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteMessage(row.syft_thread_id);
-              await load(true);
-            } catch (e) {
-              Alert.alert('Delete failed', e instanceof Error ? e.message : String(e));
-            }
-          },
-        },
-      ],
-    );
+  const openMenu = (row: ThreadRow) => {
+    Alert.alert(`syft_thread ${row.syft_thread_id}`, row.syft_thread_sender_type, [
+      { text: 'Show JSON', onPress: () => setJsonRow(row) },
+      {
+        text: 'Delete Message',
+        style: 'destructive',
+        onPress: () =>
+          Alert.alert(
+            'Delete message',
+            `Permanently delete syft_thread ${row.syft_thread_id}? This removes it from the user's app.`,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: async () => {
+                  try {
+                    await deleteMessage(row.syft_thread_id);
+                    await load(true);
+                  } catch (e) {
+                    Alert.alert('Delete failed', e instanceof Error ? e.message : String(e));
+                  }
+                },
+              },
+            ],
+          ),
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   if (loading) return <ActivityIndicator style={styles.centered} color={adminTheme.accent} />;
@@ -101,17 +113,17 @@ export function RawThreadsView({ user }: { user: AdminUser }) {
         <Text style={styles.toolbarText}>
           {rows.length} rows{rows.length >= 150 ? ' (API cap 150)' : ''} · {user.userEmail}
         </Text>
-        <Pressable onPress={() => listRef.current?.scrollToEnd({ animated: true })} style={styles.button}>
-          <Text style={styles.buttonText}>Latest ↓</Text>
+        <Pressable onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })} style={styles.button}>
+          <Text style={styles.buttonText}>Latest ↑</Text>
         </Pressable>
       </View>
       <FlatList
         ref={listRef}
         style={styles.list}
-        data={ordered}
+        data={rows} // API order: newest first
         keyExtractor={(r) => String(r.syft_thread_id)}
         renderItem={({ item }) => (
-          <ThreadRowItem row={item} onLongPress={() => confirmDelete(item)} onOpenImage={setViewerUrl} />
+          <ThreadRowItem row={item} onLongPress={() => openMenu(item)} onOpenImage={setViewerUrl} />
         )}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={adminTheme.accent} />
@@ -119,6 +131,7 @@ export function RawThreadsView({ user }: { user: AdminUser }) {
         initialNumToRender={20}
       />
       <ImageViewer url={viewerUrl} onClose={() => setViewerUrl(null)} />
+      <JsonViewer row={jsonRow} onClose={() => setJsonRow(null)} />
     </View>
   );
 }
@@ -132,7 +145,6 @@ function ThreadRowItem({
   onLongPress: () => void;
   onOpenImage: (url: string) => void;
 }) {
-  const [showJson, setShowJson] = useState(false);
   const parsed = useMemo(() => parseThreadContent(row.syft_thread_content), [row.syft_thread_content]);
   const bubble =
     row.syft_thread_sender_type === 'user'
@@ -150,21 +162,8 @@ function ThreadRowItem({
       <ContentSummary parsed={parsed} senderType={row.syft_thread_sender_type} onOpenImage={onOpenImage} />
       <View style={styles.rowFooter}>
         <Text style={styles.meta}>{formatTimestamp(row.syft_thread_timestamp)}</Text>
-        <View style={styles.footerRight}>
-          {row.syft_thread_rating ? <Text style={styles.meta}>rating {row.syft_thread_rating}</Text> : null}
-          {parsed.ok && parsed.content.apiVersion !== undefined ? (
-            <Text style={styles.meta}>API {String(parsed.content.apiVersion)}</Text>
-          ) : null}
-          <Pressable onPress={() => setShowJson((v) => !v)} hitSlop={8}>
-            <Text style={styles.jsonToggle}>{showJson ? 'hide JSON' : 'JSON'}</Text>
-          </Pressable>
-        </View>
+        {row.syft_thread_rating ? <Text style={styles.meta}>rating {row.syft_thread_rating}</Text> : null}
       </View>
-      {showJson ? (
-        <Text style={styles.json} selectable>
-          {parsed.ok ? JSON.stringify(parsed.content, null, 2) : (parsed.raw ?? '(null)')}
-        </Text>
-      ) : null}
     </Pressable>
   );
 }
@@ -189,31 +188,41 @@ function ContentSummary({
   // Build 26 showed the photo only on the user's own message (the same file
   // name is echoed into the bot and data rows).
   const image = senderType === 'user' ? mealImageUrl(c.userImage) : null;
-  // syft-data rows carry the meal breakdown; build 26 rendered it as a table plus assumptions.
+  // syft-data rows are either a meal (nutritionDataNested) or a symptom log
+  // (symptomData with a `symptoms` object); the user app renders each as a card.
   const nutrition =
     senderType === 'syft-data' ? summariseNutrition(c.nutritionDataNested, c.nutritionData, c.assumptions) : null;
-  // Symptom-only logs have no nutrition; their visible text is symptomData.response.
-  const symptomData = isRecord(c.symptomData) ? c.symptomData : null;
-  const symptomResponse = typeof symptomData?.response === 'string' ? symptomData.response : null;
-  const symptomKeys = isRecord(symptomData?.symptoms)
-    ? Object.entries(symptomData.symptoms)
-        .filter(([, v]) => v !== null && v !== undefined && v !== false)
-        .map(([k]) => k)
-    : [];
+  const symptomData = senderType === 'syft-data' && isRecord(c.symptomData) ? c.symptomData : null;
+  const isSymptomCard = !nutrition && symptomData !== null && hasSymptomCard(symptomData);
+  const showMealName = Boolean(c.mealName) && !isSymptomCard && c.mealName !== 'Unknown meal';
+
   return (
     <View>
       {image ? <RowImage url={image} fallbackUrl={legacyMealImageUrl(c.userImage)} onOpen={onOpenImage} /> : null}
       {c.userResponse ? <Text style={styles.body}>{c.userResponse}</Text> : null}
       {c.syftResponse ? <Text style={styles.body}>{c.syftResponse}</Text> : null}
-      {c.mealName ? <Text style={styles.bodyStrong}>{String(c.mealName)}</Text> : null}
+      {showMealName ? <Text style={styles.bodyStrong}>{String(c.mealName)}</Text> : null}
       {nutrition ? <NutritionDataTable summary={nutrition} /> : null}
-      {symptomResponse ? <Text style={styles.body}>{symptomResponse}</Text> : null}
+      {isSymptomCard && symptomData ? <SymptomCard symptomData={symptomData} /> : null}
       {c.syftVisionDescription && senderType === 'user' ? (
         <Text style={styles.bodyMuted}>Vision: {c.syftVisionDescription}</Text>
       ) : null}
       {c.proactive ? <Text style={styles.tag}>proactive{c.proactiveRuleId ? ` · ${c.proactiveRuleId}` : ''}</Text> : null}
-      {symptomKeys.length > 0 ? <Text style={styles.tag}>symptoms: {symptomKeys.join(', ')}</Text> : null}
       {c.userData ? <Text style={styles.bodyMuted}>{JSON.stringify(c.userData)}</Text> : null}
+    </View>
+  );
+}
+
+/** Same title, detail and red/green/grey treatment as the user app's chat symptom card. */
+function SymptomCard({ symptomData }: { symptomData: Record<string, unknown> }) {
+  const colors = polarityColors(symptomData.symptom_polarity);
+  const response = typeof symptomData.response === 'string' ? symptomData.response : null;
+  return (
+    <View style={[styles.symptomCard, { backgroundColor: colors.bg, borderLeftColor: colors.bar }]}>
+      <Text style={[styles.symptomTitle, { color: colors.fg }]}>{symptomCardTitle(symptomData)}</Text>
+      <Text style={styles.symptomDetail}>{symptomCardDetail(symptomData)}</Text>
+      {response ? <Text style={styles.bodyMuted}>{response}</Text> : null}
+      {symptomData.red_flag ? <Text style={[styles.tag, { color: colors.fg }]}>red flag</Text> : null}
     </View>
   );
 }
@@ -262,6 +271,32 @@ function ImageViewer({ url, onClose }: { url: string | null; onClose: () => void
   );
 }
 
+function JsonViewer({ row, onClose }: { row: ThreadRow | null; onClose: () => void }) {
+  const text = useMemo(() => {
+    if (!row) return '';
+    const parsed = parseThreadContent(row.syft_thread_content);
+    const content = parsed.ok ? parsed.content : row.syft_thread_content;
+    return JSON.stringify({ ...row, syft_thread_content: content }, null, 2);
+  }, [row]);
+  return (
+    <Modal visible={row !== null} animationType="slide" onRequestClose={onClose}>
+      <View style={styles.jsonScreen}>
+        <View style={styles.toolbar}>
+          <Text style={styles.toolbarText}>syft_thread {row?.syft_thread_id}</Text>
+          <Pressable onPress={onClose} style={styles.button}>
+            <Text style={styles.buttonText}>Close</Text>
+          </Pressable>
+        </View>
+        <ScrollView contentContainerStyle={styles.jsonContent}>
+          <Text style={styles.json} selectable>
+            {text}
+          </Text>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { flex: 1 },
@@ -272,7 +307,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
+    paddingVertical: spacing.sm,
   },
   toolbarText: { color: adminTheme.textMuted, fontSize: 12, flex: 1 },
   button: { backgroundColor: adminTheme.surface, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 6 },
@@ -290,25 +325,17 @@ const styles = StyleSheet.create({
   bubbleData: { backgroundColor: adminTheme.bubbleData },
   rowHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs },
   rowFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm },
-  footerRight: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
   sender: { color: adminTheme.accent, fontSize: 12, fontWeight: '700' },
   meta: { color: adminTheme.textMuted, fontSize: 11 },
-  jsonToggle: { color: adminTheme.accent, fontSize: 11, fontWeight: '600' },
-  json: {
-    color: adminTheme.text,
-    fontFamily: 'Menlo',
-    fontSize: 11,
-    marginTop: spacing.sm,
-    backgroundColor: adminTheme.background,
-    padding: spacing.sm,
-    borderRadius: 6,
-  },
   body: { color: adminTheme.text, fontSize: 14, lineHeight: 20 },
   bodyStrong: { color: adminTheme.text, fontSize: 14, fontWeight: '700', lineHeight: 20 },
   bodyMuted: { color: adminTheme.textMuted, fontSize: 12, lineHeight: 18, marginTop: spacing.xs },
   tag: { color: adminTheme.accent, fontSize: 11, marginTop: spacing.xs },
   unparseable: { color: adminTheme.danger, fontSize: 12 },
   image: { width: 160, height: 160, borderRadius: 8, marginBottom: spacing.sm, backgroundColor: adminTheme.background },
+  symptomCard: { borderLeftWidth: 4, borderRadius: 8, padding: spacing.sm, marginTop: spacing.xs },
+  symptomTitle: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  symptomDetail: { color: adminTheme.text, fontSize: 14, fontWeight: '600', marginTop: 2 },
   viewerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' },
   viewerContent: { flexGrow: 1, justifyContent: 'center' },
   viewerImage: { width: '100%', aspectRatio: 1 },
@@ -321,4 +348,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: 999,
   },
+  jsonScreen: { flex: 1, backgroundColor: adminTheme.background, paddingTop: 56 },
+  jsonContent: { padding: spacing.md },
+  json: { color: adminTheme.text, fontFamily: 'Menlo', fontSize: 11, lineHeight: 15 },
 });
