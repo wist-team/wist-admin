@@ -13,6 +13,7 @@ import { fetchUsers, type AdminUser } from '../api/admin';
 import { roundOrDash } from '../lib/number';
 import { formatRelative } from '../lib/format';
 import { DEFAULT_SORT, SORT_OPTIONS, sortUsers, type SortField } from '../lib/sortUsers';
+import { deriveDayStats } from '../lib/userStats';
 import type { RootScreenProps } from '../navigation/types';
 import { adminTheme, spacing } from '../theme';
 
@@ -87,6 +88,7 @@ export default function UsersScreen({ navigation }: RootScreenProps<'Users'>) {
 }
 
 function UserRow({ user, onPress }: { user: AdminUser; onPress: () => void }) {
+  const days = deriveDayStats(user);
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
       <Text style={styles.email}>
@@ -98,10 +100,10 @@ function UserRow({ user, onPress }: { user: AdminUser; onPress: () => void }) {
         left={`Signed up ${roundOrDash(user.days_since_first_message)} days ago`}
         right={`Avg logs per day: ${roundOrDash(user.avg_syft_data_responses_per_day)}`}
       />
-      <Pair left={`Days active: ${roundOrDash(user.days_active)}`} right={`Days missed: ${roundOrDash(user.days_missed)}`} />
+      <Pair left={`Days active: ${roundOrDash(user.days_active)}`} right={`Days missed: ${roundOrDash(days.daysMissed)}`} />
       <Pair
         left={`Avg msg per day: ${roundOrDash(user.avg_messages_per_day)}`}
-        right={`${roundOrDash(user.missed_days_percentage)}% of days missed`}
+        right={`${roundOrDash(days.missedPct)}% of days missed`}
       />
       <Pair
         left={`Avg weekday: ${roundOrDash(user.avg_weekday_logs)}`}
