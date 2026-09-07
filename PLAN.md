@@ -12,7 +12,7 @@ TestFlight build 26 stops launching around **27 September 2026**. Release 1 exis
 |---|---|
 | 1 | Two releases. Release 1 is a minimal port to reset the TestFlight clock; Release 2 adds the user views. |
 | 2 | Auth: baked shared key named `admin-app:<key>` in the box's `WIST_API_KEYS`, sent as `x-wist-proxy-key` to **every** host the app calls, so later enforcement on any service needs no client change. |
-| 3 | Expo SDK 56, Jon's recovered `app.config.json` as the base. Bundle ID `site.syft.admin.v2` unchanged (App Store Connect record, testers and history hang off it). |
+| 3 | Expo SDK **57** (upgraded from 56 on 7 Sep 2026 after expo-doctor flagged SDK 56's Hermes memory regression), Jon's recovered `app.config.json` as the base. Bundle ID `site.syft.admin.v2` unchanged (App Store Connect record, testers and history hang off it). |
 | 4 | React Navigation v7 (native stack), plain `StyleSheet`, TypeScript for new code. Vendored user-app files stay `.js`. No Expo Router. |
 | 5 | Dropped: Scores (not wanted), Logs (calls a path-traversal endpoint, unused since June), Meals (crashes, low value), Stats (low value). Meals/Stats may return later. |
 | 6 | Navigation is a native stack only: Users list → User detail. No tab bar until a second top-level section exists. Tabs are likely to return in Release 2 for monitoring / error logging. |
@@ -65,7 +65,7 @@ Read this before touching anything. Sequence steps above are annotated here rath
 ### Open — needs Harry
 
 1. **Detail view bugs.** Harry tested the Raw view on the simulator and reported three problems: the segmented control filled half the screen, `syft-data` rows printed `[object Object]`, and the list did not scroll. All three were fixed (commit `149c62f`) and rebuilt, but Harry said it was "still not quite right" and paused before saying what. **Ask what he saw before doing anything else on the Raw view.**
-2. **SDK 57 decision.** expo-doctor flags SDK 56's Hermes (250829098.0.10) as affected by a known memory regression, fixed in SDK 57 / RN 0.86.2. Decision 3 chose SDK 56 before this was known. Upgrading now is `npx expo install expo@^57 --fix` on a tiny codebase; later it gets harder. Recommendation: upgrade before build 28.
+2. ~~SDK 57 decision~~ **Done 7 Sep 2026**: on SDK 57 / RN 0.86.3. `npx expo install expo@^57 --fix` needed `jest-expo` bumped by hand first (peer conflict on the RN jest preset).
 3. **TestFlight go/no-go.** Once the Raw view is right: cut build 28 (`eas build --profile production --platform ios`), then `eas submit --profile production --platform ios`. Submission puts a build in front of the whole tester list, so it is Harry's call.
 4. **Ad hoc renewal.** `eas build --profile preview --platform ios` in a real terminal, signing in with Harry's Syft Health Ltd Apple ID (needs Admin on the team) so EAS can create a new ad hoc certificate and register his phone (`eas device:create`).
 5. **Portal key** for Release 2's Sensitivities view: locate in the team password manager or rotate by redeploying `wist-api` and `clinic-portal-api` with a new `PortalApiKey` / `WistPortalKey`, then add as `EXPO_PUBLIC_WIST_PORTAL_KEY` on EAS.
@@ -74,7 +74,7 @@ Read this before touching anything. Sequence steps above are annotated here rath
 ### Gotchas learned (do not rediscover these)
 
 - **Day-to-day testing is Expo Go, not EAS builds.** `npx expo start` + `i` runs the app from Metro in Expo Go (verified on SDK 56, 7 Sep 2026). Release 1 has no custom native modules, so this covers everything; EAS simulator builds are for verifying the release artifact only. See README.
-- **Local Xcode is too old.** SDK 56 requires Xcode ≥ 26.4; this Mac has 26.0.1, so `npx expo run:ios` fails with Swift errors inside `expo-modules-jsi`. Not needed while Expo Go suffices. A stale `ios/` folder from that attempt exists locally; it is gitignored and easignored.
+- **Local Xcode is too old.** SDK 56 and 57 require Xcode ≥ 26.4; this Mac has 26.0.1, so `npx expo run:ios` fails with Swift errors inside `expo-modules-jsi`. Not needed while Expo Go suffices. A stale `ios/` folder from that attempt exists locally; it is gitignored and easignored.
 - **First `expo start` may fail with `ENOENT` renaming `~/.expo/codesigning/<projectId>/…json`.** Metro stays up but never bundles and Expo Go sits on the splash. Kill and restart; it works the second time.
 - **`.easignore` replaces `.gitignore` entirely.** The first version omitted `ios/` and `node_modules/`, uploading 394 MB and a Hermes compiler path from Harry's Mac, which failed the EAS build. The current `.easignore` is correct; keep it in sync with `.gitignore`.
 - **`eas build:view --json` can emit control characters** in error messages; parse with `json.loads(..., strict=False)`.

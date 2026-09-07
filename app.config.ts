@@ -20,7 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
   ios: {
     supportsTablet: true,
-    buildNumber: '27', // was 26
+    buildNumber: '28', // was 26; 27 was cut on SDK 56 and never submitted
     bundleIdentifier: 'site.syft.admin.v2', // App Store Connect record; never change
     infoPlist: {
       NSUserActivityTypes: ['INSendMessageIntent'],

@@ -15,7 +15,7 @@ Release 1 has no custom native code, so **Expo Go is the day-to-day loop**: no E
 - **Native dependencies added** (Release 2 may pull in gesture-handler, reanimated, bottom-sheet): build a dev client once with `eas build --profile development --platform ios` (add `"ios": {"simulator": true}` to that profile for the simulator), then `npx expo start --dev-client`. Rebuild only when native deps change again.
 - **Testing the real release artifact**: `eas build --profile simulator --platform ios`, then `xcrun simctl install booted <WistAdmin.app>`. Use sparingly; each one is an EAS build.
 
-`npx expo run:ios` (local native build) needs Xcode ≥ 26.4 for SDK 56.
+`npx expo run:ios` (local native build) needs Xcode ≥ 26.4 for SDK 57.
 
 If Metro logs `ENOENT ... .expo/codesigning/<projectId>/...json` on the first start, stop it and run it again; the cache directory races on first creation.
 
