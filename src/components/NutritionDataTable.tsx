@@ -31,13 +31,14 @@ export function NutritionDataTable({ summary }: { summary: NutritionSummary }) {
             ))}
           </View>
         ) : (
+          // A top-level ingredient (e.g. a glass of water beside a dish) is a component in its own right.
           <View key={`row-${i}`} style={styles.row}>
-            <Text style={[styles.cell, styles.itemCell, { paddingLeft: r.depth * 10 }]} numberOfLines={2}>
+            <Text style={[styles.cell, styles.itemCell, r.depth === 0 && styles.headingText, { paddingLeft: r.depth * 10 }]} numberOfLines={2}>
               {r.name}
             </Text>
-            <Text style={[styles.cell, styles.numCell]}>{r.quantity.toFixed(0)}g</Text>
+            <Text style={[styles.cell, styles.numCell, r.depth === 0 && styles.headingText]}>{r.quantity.toFixed(0)}g</Text>
             {MACROS.map((m) => (
-              <Text key={m} style={[styles.cell, styles.numCell]}>
+              <Text key={m} style={[styles.cell, styles.numCell, r.depth === 0 && styles.headingText]}>
                 {r.macros[m].toFixed(0)}
               </Text>
             ))}
