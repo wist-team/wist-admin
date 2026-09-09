@@ -25,11 +25,16 @@ Checks: `npm run typecheck`, `npm test`.
 
 Profiles are in `eas.json`. Keys come from EAS environment variables (`sensitive` visibility) on the `preview` and `production` environments, never from git.
 
+Ad hoc (`preview`) is the primary distribution: the team installs from the EAS build link on registered devices, and the build lasts as long as the provisioning profile (12 months). TestFlight (`production`) is configured but only for devices that cannot be registered.
+
 ```bash
-eas build --profile preview --platform all      # ad hoc iOS + Android APK, installs from the EAS link
-eas build --profile production --platform ios   # TestFlight
+eas device:create                                # register a new device (needs the Syft Health Ltd Apple ID)
+eas build --profile preview --platform ios       # ad hoc build; add --platform all for an Android APK too
+eas build:resign --profile preview               # add newly registered devices without a rebuild
+eas update --channel preview --environment preview --message "..."   # JS-only changes to installed devices
+
+eas build --profile production --platform ios    # TestFlight, reserve only
 eas submit --profile production --platform ios
-eas update --channel production --environment production --message "..."   # JS-only changes
 ```
 
 The runtime version is a native fingerprint: an OTA update is only ever served to a binary with an identical native layout. If `eas update` reports no matching builds, the change needs a new build.
