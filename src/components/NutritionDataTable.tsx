@@ -20,9 +20,15 @@ export function NutritionDataTable({ summary }: { summary: NutritionSummary }) {
       {rows.map((r, i) =>
         r.isHeading ? (
           <View key={`heading-${i}`} style={styles.row}>
-            <Text style={[styles.cell, styles.headingText, { paddingLeft: r.depth * 10 }]} numberOfLines={2}>
+            <Text style={[styles.cell, styles.itemCell, styles.headingText, { paddingLeft: r.depth * 10 }]} numberOfLines={2}>
               {r.name}
             </Text>
+            <Text style={[styles.cell, styles.numCell, styles.headingText]}>{r.quantity.toFixed(0)}g</Text>
+            {MACROS.map((m) => (
+              <Text key={m} style={[styles.cell, styles.numCell, styles.headingText]}>
+                {r.macros[m].toFixed(0)}
+              </Text>
+            ))}
           </View>
         ) : (
           <View key={`row-${i}`} style={styles.row}>
@@ -70,7 +76,7 @@ const styles = StyleSheet.create({
   itemCell: { flex: 3, textAlign: 'left' },
   numCell: { flex: 1 },
   headerText: { fontWeight: '700', fontSize: 10 },
-  headingText: { flex: 1, textAlign: 'left', fontWeight: '700', color: adminTheme.accent, paddingTop: 6 },
+  headingText: { fontWeight: '700', color: adminTheme.accent, paddingTop: 6 },
   assumptions: { marginTop: spacing.sm },
   assumptionsHeading: { color: adminTheme.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 2 },
   assumptionText: { color: adminTheme.textMuted, fontSize: 11, lineHeight: 16 },

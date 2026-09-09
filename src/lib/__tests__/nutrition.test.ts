@@ -15,6 +15,10 @@ describe('summariseNutrition', () => {
     const eggRow = s!.rows[1];
     expect(eggRow.isHeading).toBe(false);
     if (!eggRow.isHeading) expect(eggRow.macros.Kcals).toBe(100);
+    // the heading carries the subtotal of its ingredients
+    const heading = s!.rows[0];
+    expect(heading.isHeading && heading.quantity).toBe(90);
+    expect(heading.isHeading && heading.macros.Kcals).toBe(200);
     expect(s!.totals.Kcals).toBe(200);
     expect(s!.totals.quantity).toBe(90);
     expect(s!.totals.Fibre).toBe(1);
@@ -27,6 +31,14 @@ describe('summariseNutrition', () => {
       'meal-level note',
     );
     expect(s!.allAssumptions).toEqual(['One large egg.', 'a', 'b', 'c', 'meal-level note']);
+  });
+
+  it('a top-level ingredient beside a component counts in totals but not the component subtotal', () => {
+    const s = summariseNutrition({ Dish: { Egg: egg, Toast: toast }, Water: { quantity: 200, nutrition: { Kcals: 0, Carbs: 0, Protein: 0, Fat: 0, Fibre: 0 } } });
+    const dish = s!.rows[0];
+    expect(dish.isHeading && dish.quantity).toBe(90);
+    expect(s!.totals.quantity).toBe(290);
+    expect(s!.rows.map((r) => r.depth)).toEqual([0, 1, 1, 0]);
   });
 
   it('falls back to the flat structure and returns null for nothing', () => {

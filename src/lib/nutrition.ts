@@ -18,10 +18,13 @@ export interface IngredientRow {
   macros: MacroTotals;
 }
 
+/** A dish/component heading. Carries the subtotal of every ingredient beneath it. */
 export interface HeadingRow {
   isHeading: true;
   name: string;
   depth: number;
+  quantity: number;
+  macros: MacroTotals;
 }
 
 export type NutritionRow = IngredientRow | HeadingRow;
@@ -66,7 +69,15 @@ export function summariseNutrition(
   const totals = { quantity: 0, Kcals: 0, Carbs: 0, Protein: 0, Fat: 0, Fibre: 0 };
   const allAssumptions: string[] = [];
 
-  const traverse = (node: Node, depth: number) => {
+  const zero = (): MacroTotals & { quantity: number } => ({ quantity: 0, Kcals: 0, Carbs: 0, Protein: 0, Fat: 0, Fibre: 0 });
+  const add = (into: MacroTotals & { quantity: number }, q: number, m: MacroTotals) => {
+    into.quantity += q;
+    for (const k of MACROS) into[k] += m[k];
+  };
+
+  /** Walks one level, appending rows; returns the subtree's subtotal so headings can show it. */
+  const traverse = (node: Node, depth: number): MacroTotals & { quantity: number } => {
+    const subtotal = zero();
     for (const [name, value] of Object.entries(node)) {
       if (!isObject(value)) continue;
       if (isObject(value.nutrition)) {
@@ -80,17 +91,22 @@ export function summariseNutrition(
           Fibre: (num(n.Fibre) * quantity) / 100,
         };
         rows.push({ isHeading: false, name, depth, quantity, macros });
-        totals.quantity += quantity;
-        for (const m of MACROS) totals[m] += macros[m];
+        add(subtotal, quantity, macros);
         collectAssumptions(value.assumptions, allAssumptions);
       } else {
-        rows.push({ isHeading: true, name, depth });
-        traverse(value, depth + 1);
+        const heading: HeadingRow = { isHeading: true, name, depth, quantity: 0, macros: { Kcals: 0, Carbs: 0, Protein: 0, Fat: 0, Fibre: 0 } };
+        rows.push(heading);
+        const { quantity, ...macros } = traverse(value, depth + 1);
+        heading.quantity = quantity;
+        heading.macros = macros;
+        add(subtotal, quantity, macros);
       }
     }
+    return subtotal;
   };
 
-  traverse(source, 0);
+  const grand = traverse(source, 0);
+  add(totals, grand.quantity, grand);
   collectAssumptions(mealAssumptions, allAssumptions);
   return { rows, totals, allAssumptions };
 }
